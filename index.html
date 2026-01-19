@@ -5,10 +5,12 @@
     <title>Genetic Construct Designer</title>
     <style>
         :root {
-            /* Protan-safe accessible palette */
+            /* Lox Colors (for outlines) */
             --lox1: #0072B2; --lox2: #E69F00; --lox3: #56B4E9; 
             --lox4: #F0E442; --lox5: #D55E00; --lox6: #009E73;
-            --orf: #CC79A7; --stop: #000000; --t2a: #999999;
+            /* ORF Colors (for solid fills) */
+            --orf1: #CC79A7; --orf2: #9b59b6; --orf3: #e74c3c; --orf4: #2ecc71;
+            --stop: #000000; --t2a: #999999; --pa: #555555;
         }
         body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f0f2f5; padding: 20px; }
         .container { max-width: 1200px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
@@ -17,21 +19,31 @@
         .dna-block { 
             height: 40px; min-width: 90px; padding: 0 12px; color: white; 
             font-weight: bold; display: flex; align-items: center; justify-content: center; 
-            font-size: 11px; user-select: none; border: 1px solid rgba(0,0,0,0.1);
+            font-size: 11px; user-select: none; box-sizing: border-box;
             clip-path: polygon(0% 0%, 85% 0%, 100% 50%, 85% 100%, 0% 100%);
         }
         .piece-wrapper.rev .dna-block { clip-path: polygon(15% 0%, 100% 0%, 100% 100%, 15% 100%, 0% 50%); }
-        
-        /* Color Mapping */
-        .lox1 { background: var(--lox1); } .lox2 { background: var(--lox2); color: #000; } 
-        .lox3 { background: var(--lox3); } .lox4 { background: var(--lox4); color: #000; } 
-        .lox5 { background: var(--lox5); } .lox6 { background: var(--lox6); }
-        .orf { background: var(--orf); } .stop { background: var(--stop); } .t2a { background: var(--t2a); }
+
+        /* Hollow Lox Styling */
+        .lox-style { background: transparent; border: 3px solid; color: #333 !important; }
+        .lox1 { border-color: var(--lox1); color: var(--lox1) !important; }
+        .lox2 { border-color: var(--lox2); color: var(--lox2) !important; }
+        .lox3 { border-color: var(--lox3); color: var(--lox3) !important; }
+        .lox4 { border-color: var(--lox4); color: var(--lox4) !important; }
+        .lox5 { border-color: var(--lox5); color: var(--lox5) !important; }
+        .lox6 { border-color: var(--lox6); color: var(--lox6) !important; }
+
+        /* ORF and Functional Styling */
+        .orf1 { background: var(--orf1); } .orf2 { background: var(--orf2); } 
+        .orf3 { background: var(--orf3); } .orf4 { background: var(--orf4); }
+        .stop { background: var(--stop); } 
+        .pa { background: var(--pa); }
+        .t2a { background: var(--t2a); border: 2px solid black; }
 
         .toolbox, .strand { display: flex; align-items: center; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
         .toolbox { background: #eee; gap: 2px; flex-wrap: wrap; }
         .strand { min-height: 110px; border: 2px dashed #ccc; gap: 2px; background: #fff; overflow-x: auto; }
-        .strand.drag-over { background: #e3f2fd; border-color: var(--lox1); }
+        .strand.drag-over { background: #e3f2fd; border-color: #0072B2; }
 
         .delete-btn { 
             position: absolute; top: 0; right: 0; color: black; font-size: 16px; 
@@ -48,7 +60,6 @@
 
         .outcome-box { border: 1px solid #ddd; padding: 10px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; border-radius: 6px; }
         .express-tag { padding: 4px 10px; border-radius: 4px; background: #333; color: #fff; font-weight: bold; font-size: 11px; white-space: nowrap;}
-
         button { cursor: pointer; padding: 10px 20px; border-radius: 6px; border: none; font-weight: bold; }
         .btn-primary { background: #2c3e50; color: #fff; }
     </style>
@@ -56,7 +67,7 @@
 <body>
 
 <div class="container">
-    <h2>🧬 Multi-Lox Construct Designer</h2>
+    <h2>🧬 Enhanced Construct Designer</h2>
 
     <div class="share-box">
         <strong>Code:</strong>
@@ -66,18 +77,19 @@
     </div>
     
     <div class="toolbox" id="toolbox">
-        <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="Lox1"><div class="dna-block lox1">Lox1</div></div>
-        <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="Lox2"><div class="dna-block lox2">Lox2</div></div>
-        <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="Lox3"><div class="dna-block lox3">Lox3</div></div>
-        <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="Lox4"><div class="dna-block lox4">Lox4</div></div>
-        <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="Lox5"><div class="dna-block lox5">Lox5</div></div>
-        <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="Lox6"><div class="dna-block lox6">Lox6</div></div>
+        <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="Lox1"><div class="dna-block lox-style lox1">Lox1</div></div>
+        <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="Lox2"><div class="dna-block lox-style lox2">Lox2</div></div>
+        <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="Lox3"><div class="dna-block lox-style lox3">Lox3</div></div>
+        <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="Lox4"><div class="dna-block lox-style lox4">Lox4</div></div>
+        <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="Lox5"><div class="dna-block lox-style lox5">Lox5</div></div>
+        <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="Lox6"><div class="dna-block lox-style lox6">Lox6</div></div>
         <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="Stop"><div class="dna-block stop">Stop</div></div>
+        <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="pA"><div class="dna-block pa">polyA</div></div>
         <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="T2A"><div class="dna-block t2a">T2A</div></div>
-        <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="ORF1"><div class="dna-block orf">ORF1</div></div>
-        <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="ORF2"><div class="dna-block orf">ORF2</div></div>
-        <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="ORF3"><div class="dna-block orf">ORF3</div></div>
-        <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="ORF4"><div class="dna-block orf">ORF4</div></div>
+        <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="ORF1"><div class="dna-block orf1">ORF1</div></div>
+        <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="ORF2"><div class="dna-block orf2">ORF2</div></div>
+        <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="ORF3"><div class="dna-block orf3">ORF3</div></div>
+        <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="ORF4"><div class="dna-block orf4">ORF4</div></div>
     </div>
 
     <div id="strand" class="strand" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="drop(event)"></div>
@@ -96,12 +108,12 @@
     let draggedData = null;
 
     const lookup = {
-        "Lox1": {type: "LOX", css: "lox1"}, "Lox2": {type: "LOX", css: "lox2"},
-        "Lox3": {type: "LOX", css: "lox3"}, "Lox4": {type: "LOX", css: "lox4"},
-        "Lox5": {type: "LOX", css: "lox5"}, "Lox6": {type: "LOX", css: "lox6"},
-        "Stop": {type: "STOP", css: "stop"}, "T2A":  {type: "T2A",  css: "t2a"},
-        "ORF1": {type: "ORF",  css: "orf"}, "ORF2": {type: "ORF",  css: "orf"},
-        "ORF3": {type: "ORF",  css: "orf"}, "ORF4": {type: "ORF",  css: "orf"}
+        "Lox1": {type: "LOX", css: "lox-style lox1"}, "Lox2": {type: "LOX", css: "lox-style lox2"},
+        "Lox3": {type: "LOX", css: "lox-style lox3"}, "Lox4": {type: "LOX", css: "lox-style lox4"},
+        "Lox5": {type: "LOX", css: "lox-style lox5"}, "Lox6": {type: "LOX", css: "lox-style lox6"},
+        "Stop": {type: "STOP", css: "stop"}, "pA": {type: "STOP", css: "pa"}, "T2A":  {type: "T2A",  css: "t2a"},
+        "ORF1": {type: "ORF",  css: "orf1"}, "ORF2": {type: "ORF",  css: "orf2"},
+        "ORF3": {type: "ORF",  css: "orf3"}, "ORF4": {type: "ORF",  css: "orf4"}
     };
 
     function allowDrop(ev) { ev.preventDefault(); strand.classList.add('drag-over'); }
@@ -173,7 +185,6 @@
             if(s.type === 'STOP' && s.dir === 1) break;
             if(s.type === 'ORF' && s.dir === 1) {
                 expressed.push(s.id);
-                // Check if next is NOT a T2A. If not T2A, stop transcription logic here.
                 let idx = seq.indexOf(s);
                 if(!(seq[idx+1] && seq[idx+1].type === 'T2A')) break;
             }
