@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Advanced Cre-Lox Simulator</title>
+    <style>
+        :root {
+            --loxp: #0072B2; --l22: #E69F00; --l511: #56B4E9; --ln: #F0E442;
+            --orf: #CC79A7; --pA: #000000;
+        }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; }
+        .container { max-width: 1100px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        
+        .piece-wrapper {
+            position: relative; padding: 10px 5px; cursor: grab; display: flex; align-items: center;
+        }
+        .piece-wrapper:active { cursor: grabbing; }
+
+        .dna-block { 
+            height: 38px; min-width: 85px; padding: 0 12px; color: white; 
+            font-weight: bold; display: flex; align-items: center; justify-content: center; 
+            font-size: 11px; user-select: none;
+            clip-path: polygon(0% 0%, 85% 0%, 100% 50%, 85% 100%, 0% 100%);
+        }
+        .piece-wrapper.rev .dna-block { clip-path: polygon(15% 0%, 100% 0%, 100% 100%, 15% 100%, 0% 50%); }
+        
+        .l22, .ln { color: #000 !important; }
+        .p { background: var(--loxp); } .l22 { background: var(--l22); } 
+        .l511 { background: var(--l511); } .ln { background: var(--ln); }
+        .orf { background: var(--orf); } .pa { background: var(--pA); }
+
+        .toolbox, .strand { 
+            display: flex; align-items: center; padding: 15px; border-radius: 8px; margin-bottom: 20px; 
+        }
+        .toolbox { background: #eee; gap: 5px; flex-wrap: wrap; }
+        .strand { min-height: 100px; border: 2px dashed #ccc; gap: 2px; background: #fff; overflow-x: auto; }
+        .strand.drag-over { background: #e3f2fd; border-color: var(--loxp); }
+
+        .delete-btn { 
+            position: absolute; top: 0; right: 0; color: black; font-size: 16px; 
+            cursor: pointer; font-weight: bold; display: none; z-index: 20; text-shadow: 0 0 2px white;
+        }
+        .piece-wrapper:hover .delete-btn { display: block; }
+
+        .share-box { display: flex; gap: 10px; margin-bottom: 20px; background: #f9f9f9; padding: 15px; border-radius: 8px; }
+        input#sequence-string { flex-grow: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-family: monospace; }
+
+        .summary-table { width: 100%; border-collapse: collapse; margin: 20px 0; border: 1px solid #ddd; }
+        .summary-table th, .summary-table td { padding: 10px; border: 1px solid #ddd; text-align: left; }
+        .summary-table th { background: #f4f4f4; }
+
+        .outcome-box { border: 1px solid #ddd; padding: 10px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; border-radius: 6px; font-size: 11px; }
+        .express-tag { padding: 2px 8px; border-radius: 4px; background: #333; color: #fff; font-weight: bold; min-width: 90px; text-align: center; }
+
+        button { cursor: pointer; padding: 10px 20px; border-radius: 6px; border: none; font-weight: bold; }
+        .btn-primary { background: #2c3e50; color: #fff; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🧬 Dynamic Cre-Lox Simulator</h2>
+
+    <div class="share-box">
+        <input type="text" id="sequence-string" placeholder="Construct code (e.g. P1,A1,P1)">
+        <button onclick="loadFromCode()">Load Code</button>
+        <button onclick="updateCode()">Refresh Code</button>
+    </div>
+    
+    <div class="toolbox" id="toolbox">
+        <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-source="toolbox" data-id="P"><div class="dna-block p">LoxP</div></div>
+        <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-source="toolbox" data-id="L2"><div class="dna-block l22">Lox2272</div></div>
+        <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-source="toolbox" data-id="L5"><div class="dna-block l511">Lox511</div></div>
+        <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-source="toolbox" data-id="LN"><div class="dna-block ln">LoxN</div></div>
+        <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-source="toolbox" data-id="PA"><div class="dna-block pa">polyA</div></div>
+        <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="A"><div class="dna-block orf">ORF-A</div></div>
+        <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="B"><div class="dna-block orf">ORF-B</div></div>
+        <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="C"><div class="dna-block orf">ORF-C</div></div>
+    </div>
+
+    <div id="strand" class="strand" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="drop(event)"></div>
+
+    <div style="display:flex; gap:10px;">
+        <button class="btn-primary" onclick="runSimulation()">Simulate Outcomes</button>
+        <button onclick="clearStrand()">Reset Strand</button>
+    </div>
+
+    <div id="summary-section"></div>
+    <div id="results"></div>
+</div>
+
+<script>
+    const strand = document.getElementById('strand');
+    let draggedData = null;
+
+    const lookup = {
+        "P": {name: "LoxP", type: "LOX", css: "p"}, "L2": {name: "Lox2272", type: "LOX", css: "l22"},
+        "L5": {name: "Lox511", type: "LOX", css: "l511"}, "LN": {name: "LoxN", type: "LOX", css: "ln"},
+        "PA": {name: "polyA", type: "PA", css: "pa"}, "A": {name: "ORF-A", type: "ORF", css: "orf"},
+        "B": {name: "ORF-B", type: "ORF", css: "orf"}, "C": {name: "ORF-C", type: "ORF", css: "orf"}
+    };
+
+    function allowDrop(ev) { ev.preventDefault(); strand.classList.add('drag-over'); }
+    function dragLeave(ev) { strand.classList.remove('drag-over'); }
+    
+    function drag(ev) {
+        const isFromStrand = ev.currentTarget.parentElement.id === 'strand';
+        draggedData = { 
+            id: ev.currentTarget.dataset.id, 
+            dir: ev.currentTarget.dataset.dir || 1,
+            index: isFromStrand ? Array.from(strand.children).indexOf(ev.currentTarget) : -1
+        };
+    }
+    
+    function drop(ev) {
+        ev.preventDefault();
+        strand.classList.remove('drag-over');
+        if (draggedData.index !== -1) {
+            // Reordering internal
+            const pieces = [...strand.querySelectorAll('.piece-wrapper')];
+            const target = pieces.find(s => ev.clientX < s.getBoundingClientRect().left + s.getBoundingClientRect().width/2);
+            strand.insertBefore(pieces[draggedData.index], target || null);
+        } else {
+            // New from toolbox
+            addPiece(draggedData.id, 1, ev.clientX);
+        }
+        updateCode();
+    }
+
+    function addPiece(id, dir, mouseX) {
+        const info = lookup[id];
+        const wrapper = document.createElement('div');
+        wrapper.className = `piece-wrapper placed ${dir == -1 ? 'rev' : ''}`;
+        wrapper.dataset.id = id; wrapper.dataset.dir = dir;
+        wrapper.draggable = true;
+        wrapper.ondragstart = drag;
+        wrapper.innerHTML = `<div class="dna-block ${info.css}">${info.name}</div><div class="delete-btn" onclick="this.parentElement.remove(); updateCode();">×</div>`;
+        wrapper.onclick = (e) => { if(e.target.className === 'delete-btn') return; wrapper.dataset.dir = wrapper.dataset.dir == 1 ? -1 : 1; wrapper.classList.toggle('rev'); updateCode(); };
+        const siblings = [...strand.querySelectorAll('.piece-wrapper')];
+        const next = siblings.find(s => mouseX < s.getBoundingClientRect().left + s.getBoundingClientRect().width/2);
+        strand.insertBefore(wrapper, next || null);
+        updateCode();
+    }
+
+    function updateCode() { document.getElementById('sequence-string').value = [...strand.querySelectorAll('.piece-wrapper')].map(el => `${el.dataset.id}${el.dataset.dir}`).join(','); }
+
+    function loadFromCode() {
+        strand.innerHTML = '';
+        const code = document.getElementById('sequence-string').value;
+        if(!code) return;
+        code.split(',').forEach(part => {
+            const match = part.match(/([A-Z0-9]+)(-?\d+)/);
+            if(match) addPiece(match[1], parseInt(match[2]), 99999);
+        });
+    }
+
+    function clearStrand() { strand.innerHTML = ''; document.getElementById('sequence-string').value = ''; document.getElementById('results').innerHTML = ''; document.getElementById('summary-section').innerHTML = ''; }
+
+    function runSimulation() {
+        const initial = [...strand.querySelectorAll('.piece-wrapper')].map(p => ({ ...lookup[p.dataset.id], id: p.dataset.id, dir: parseInt(p.dataset.dir) }));
+        if(!initial.length) return;
+
+        let visited = new Map();
+        let queue = [{seq: initial, steps: 0}];
+        visited.set(JSON.stringify(initial), 0);
+        let outcomes = [];
+
+        while(queue.length > 0 && outcomes.length < 150) {
+            let {seq, steps} = queue.shift();
+            let expr = "None";
+            for(let s of seq) {
+                if(s.type === 'PA' && s.dir === 1) { expr = "Blocked"; break; }
+                if(s.type === 'ORF' && s.dir === 1) { expr = s.name; break; }
+            }
+            outcomes.push({seq, steps, expr});
+
+            let loxIdx = seq.map((s, i) => s.type === 'LOX' ? i : -1).filter(i => i !== -1);
+            for(let i=0; i < loxIdx.length; i++) {
+                for(let j=i+1; j < loxIdx.length; j++) {
+                    if(seq[loxIdx[i]].name !== seq[loxIdx[j]].name) continue;
+                    let nextS = [];
+                    if(seq[loxIdx[i]].dir !== seq[loxIdx[j]].dir) {
+                        let mid = seq.slice(loxIdx[i]+1, loxIdx[j]).reverse().map(s => ({...s, dir: s.dir * -1}));
+                        nextS = [...seq.slice(0, loxIdx[i]+1), ...mid, ...seq.slice(loxIdx[j])];
+                    } else {
+                        // EXCISION: Fuse the two Lox sites into one
+                        nextS = [...seq.slice(0, loxIdx[i]), seq[loxIdx[i]], ...seq.slice(loxIdx[j] + 1)];
+                    }
+                    if(!visited.has(JSON.stringify(nextS))) { visited.set(JSON.stringify(nextS), steps+1); queue.push({seq: nextS, steps: steps+1}); }
+                }
+            }
+        }
+        render(outcomes);
+    }
+
+    function render(outcomes) {
+        const stats = {};
+        outcomes.forEach(o => {
+            if (!stats[o.expr]) stats[o.expr] = new Set();
+            stats[o.expr].add(o.steps);
+        });
+
+        let summaryHtml = `<h3>Phenotype Summary</h3><table class="summary-table"><thead><tr><th>Resulting Expression</th><th>Steps to Achieve (All Paths)</th></tr></thead><tbody>`;
+        for (let key in stats) {
+            let stepsArr = Array.from(stats[key]).sort((a,b) => a-b);
+            summaryHtml += `<tr><td><strong>${key}</strong></td><td>${stepsArr.join(', ')}</td></tr>`;
+        }
+        summaryHtml += `</tbody></table>`;
+        document.getElementById('summary-section').innerHTML = summaryHtml;
+
+        const res = document.getElementById('results');
+        res.innerHTML = `<h3>Possible DNA States (${outcomes.length})</h3>`;
+        outcomes.forEach(o => {
+            const div = document.createElement('div');
+            div.className = 'outcome-box';
+            const dna = o.seq.map(s => `<div class="dna-block ${s.css}" style="transform: scale(0.65); min-width:70px; clip-path: polygon(${s.dir==1 ? '0% 0%, 85% 0%, 100% 50%, 85% 100%, 0% 100%' : '15% 0%, 100% 0%, 100% 100%, 15% 100%, 0% 50%'})">${s.id}</div>`).join('');
+            div.innerHTML = `<div style="min-width:70px">Steps: ${o.steps}</div> <div style="display:flex; flex-grow:1; overflow-x:auto;">${dna}</div> <div class="express-tag">${o.expr}</div>`;
+            res.appendChild(div);
+        });
+    }
+</script>
+</body>
+</html>
