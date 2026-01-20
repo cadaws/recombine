@@ -5,3 +5,5 @@ Find the web page here https://cadaws.github.io/recombine/
 I made this because I was sick of sketching out complex recombination sequences on paper to find the possible outcomes and predict their frequency.
 
 [![DOI](https://zenodo.org/badge/1137845460.svg)](https://doi.org/10.5281/zenodo.18307256)
+
+Made with Gemini
