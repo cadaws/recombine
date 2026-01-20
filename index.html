@@ -5,50 +5,55 @@
     <title>Genetic Construct Designer</title>
     <style>
         :root {
-            /* Lox Colors (for outlines) */
             --lox1: #0072B2; --lox2: #E69F00; --lox3: #56B4E9; 
             --lox4: #F0E442; --lox5: #D55E00; --lox6: #009E73;
-            /* ORF Colors (for solid fills) */
             --orf1: #CC79A7; --orf2: #9b59b6; --orf3: #e74c3c; --orf4: #2ecc71;
-            --stop: #000000; --t2a: #999999; --pa: #555555;
+            --stop: #000000; --t2a: #999999; --ires: #777777; --pa: #444444;
         }
-        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f0f2f5; padding: 20px; }
-        .container { max-width: 1200px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f0f2f5; padding: 20px; line-height: 1.5; }
+        .container { max-width: 1200px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
         
+        .header-box { margin-bottom: 25px; border-bottom: 2px solid #eee; padding-bottom: 20px; }
+        .instructions { background: #eef6fc; padding: 15px; border-radius: 8px; font-size: 14px; margin-top: 10px; border-left: 5px solid #0072B2; }
+
+        /* Component Grouping */
+        .toolbox-area { display: flex; flex-direction: column; gap: 15px; margin-bottom: 25px; }
+        .tool-group { background: #fdfdfd; border: 1px solid #ddd; border-radius: 8px; padding: 12px; }
+        .group-label { font-size: 12px; font-weight: bold; text-transform: uppercase; color: #666; margin-bottom: 8px; display: block; }
+        .toolbox-items { display: flex; flex-wrap: wrap; gap: 2px; align-items: center; }
+
         .piece-wrapper { position: relative; padding: 10px 4px; cursor: grab; display: flex; align-items: center; }
+        
+        /* Fixed DNA Block - removed border to fix vertical line clipping issue */
         .dna-block { 
-            height: 40px; min-width: 90px; padding: 0 12px; color: white; 
+            height: 40px; min-width: 95px; padding: 0 12px; color: white; 
             font-weight: bold; display: flex; align-items: center; justify-content: center; 
-            font-size: 11px; user-select: none; box-sizing: border-box;
+            font-size: 11px; user-select: none; position: relative;
             clip-path: polygon(0% 0%, 85% 0%, 100% 50%, 85% 100%, 0% 100%);
         }
         .piece-wrapper.rev .dna-block { clip-path: polygon(15% 0%, 100% 0%, 100% 100%, 15% 100%, 0% 50%); }
 
-        /* Hollow Lox Styling */
-        .lox-style { background: transparent; border: 3px solid; color: #333 !important; }
-        .lox1 { border-color: var(--lox1); color: var(--lox1) !important; }
-        .lox2 { border-color: var(--lox2); color: var(--lox2) !important; }
-        .lox3 { border-color: var(--lox3); color: var(--lox3) !important; }
-        .lox4 { border-color: var(--lox4); color: var(--lox4) !important; }
-        .lox5 { border-color: var(--lox5); color: var(--lox5) !important; }
-        .lox6 { border-color: var(--lox6); color: var(--lox6) !important; }
+        /* Hollow Lox Styling - Internal border simulation to prevent clipping */
+        .lox-style { background: white; color: #333 !important; }
+        .lox-style::after {
+            content: ''; position: absolute; top: 3px; left: 3px; right: 3px; bottom: 3px;
+            background: white; z-index: -1;
+            clip-path: inherit;
+        }
+        .lox1 { background: var(--lox1); } .lox2 { background: var(--lox2); } .lox3 { background: var(--lox3); }
+        .lox4 { background: var(--lox4); } .lox5 { background: var(--lox5); } .lox6 { background: var(--lox6); }
+        .lox-style .block-text { z-index: 2; }
 
-        /* ORF and Functional Styling */
         .orf1 { background: var(--orf1); } .orf2 { background: var(--orf2); } 
         .orf3 { background: var(--orf3); } .orf4 { background: var(--orf4); }
-        .stop { background: var(--stop); } 
-        .pa { background: var(--pa); }
-        .t2a { background: var(--t2a); border: 2px solid black; }
+        .stop { background: var(--stop); } .pa { background: var(--pa); }
+        .t2a { background: var(--t2a); box-shadow: inset 0 0 0 2px black; }
+        .ires { background: var(--ires); box-shadow: inset 0 0 0 2px black; }
 
-        .toolbox, .strand { display: flex; align-items: center; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
-        .toolbox { background: #eee; gap: 2px; flex-wrap: wrap; }
-        .strand { min-height: 110px; border: 2px dashed #ccc; gap: 2px; background: #fff; overflow-x: auto; }
-        .strand.drag-over { background: #e3f2fd; border-color: #0072B2; }
+        .strand { min-height: 110px; border: 2px dashed #bbb; gap: 2px; background: #fafafa; overflow-x: auto; display: flex; align-items: center; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        .strand.drag-over { background: #e3f2fd; border-color: var(--lox1); }
 
-        .delete-btn { 
-            position: absolute; top: 0; right: 0; color: black; font-size: 16px; 
-            cursor: pointer; font-weight: bold; display: none; z-index: 20; text-shadow: 0 0 2px white;
-        }
+        .delete-btn { position: absolute; top: 0; right: 0; color: black; font-size: 16px; cursor: pointer; font-weight: bold; display: none; z-index: 20; text-shadow: 0 0 2px white; }
         .piece-wrapper:hover .delete-btn { display: block; }
 
         .share-box { display: flex; gap: 10px; margin-bottom: 20px; background: #f9f9f9; padding: 15px; border-radius: 8px; align-items: center;}
@@ -60,43 +65,78 @@
 
         .outcome-box { border: 1px solid #ddd; padding: 10px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; border-radius: 6px; }
         .express-tag { padding: 4px 10px; border-radius: 4px; background: #333; color: #fff; font-weight: bold; font-size: 11px; white-space: nowrap;}
-        button { cursor: pointer; padding: 10px 20px; border-radius: 6px; border: none; font-weight: bold; }
+        button { cursor: pointer; padding: 10px 20px; border-radius: 6px; border: none; font-weight: bold; transition: opacity 0.2s; }
+        button:hover { opacity: 0.9; }
         .btn-primary { background: #2c3e50; color: #fff; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>🧬 Enhanced Construct Designer</h2>
+    <div class="header-box">
+        <h2>🧬 Recombination Sequence Simulator</h2>
+        <p><strong>Purpose:</strong> To facilitate complex genetic tool design by accelerating the simulation of Cre/Lox and Dre/Rox recombination sequences.</p>
+        <div class="instructions">
+            <strong>How to use:</strong> 
+            1. Drag components from the categories below onto the strand. 
+            2. Click a component on the strand to <strong>invert</strong> it (indicated by 'r'). 
+            3. Drag components on the strand to <strong>reorder</strong> them. 
+            4. Click <strong>Simulate</strong> to see all possible stable outcomes and resulting expression phenotypes.
+        </div>
+    </div>
 
     <div class="share-box">
-        <strong>Code:</strong>
-        <input type="text" id="sequence-string" placeholder="Paste code (e.g. Lox1,ORF1,Lox1r)">
+        <strong>Construct Code:</strong>
+        <input type="text" id="sequence-string" placeholder="Lox1,ORF1,Lox1r...">
         <button onclick="loadFromCode()">Load</button>
         <button onclick="updateCode()">Sync</button>
     </div>
     
-    <div class="toolbox" id="toolbox">
-        <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="Lox1"><div class="dna-block lox-style lox1">Lox1</div></div>
-        <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="Lox2"><div class="dna-block lox-style lox2">Lox2</div></div>
-        <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="Lox3"><div class="dna-block lox-style lox3">Lox3</div></div>
-        <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="Lox4"><div class="dna-block lox-style lox4">Lox4</div></div>
-        <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="Lox5"><div class="dna-block lox-style lox5">Lox5</div></div>
-        <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="Lox6"><div class="dna-block lox-style lox6">Lox6</div></div>
-        <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="Stop"><div class="dna-block stop">Stop</div></div>
-        <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="pA"><div class="dna-block pa">polyA</div></div>
-        <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="T2A"><div class="dna-block t2a">T2A</div></div>
-        <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="ORF1"><div class="dna-block orf1">ORF1</div></div>
-        <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="ORF2"><div class="dna-block orf2">ORF2</div></div>
-        <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="ORF3"><div class="dna-block orf3">ORF3</div></div>
-        <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="ORF4"><div class="dna-block orf4">ORF4</div></div>
+    <div class="toolbox-area">
+        <div class="tool-group">
+            <span class="group-label">Recombination Sites (Lox/Rox Variants)</span>
+            <div class="toolbox-items">
+                <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="Lox1"><div class="dna-block lox-style lox1"><span class="block-text">Lox1</span></div></div>
+                <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="Lox2"><div class="dna-block lox-style lox2"><span class="block-text">Lox2</span></div></div>
+                <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="Lox3"><div class="dna-block lox-style lox3"><span class="block-text">Lox3</span></div></div>
+                <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="Lox4"><div class="dna-block lox-style lox4"><span class="block-text">Lox4</span></div></div>
+                <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="Lox5"><div class="dna-block lox-style lox5"><span class="block-text">Lox5</span></div></div>
+                <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="Lox6"><div class="dna-block lox-style lox6"><span class="block-text">Lox6</span></div></div>
+            </div>
+        </div>
+
+        <div class="tool-group">
+            <span class="group-label">Open Reading Frames</span>
+            <div class="toolbox-items">
+                <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="ORF1"><div class="dna-block orf1">ORF1</div></div>
+                <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="ORF2"><div class="dna-block orf2">ORF2</div></div>
+                <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="ORF3"><div class="dna-block orf3">ORF3</div></div>
+                <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="ORF4"><div class="dna-block orf4">ORF4</div></div>
+            </div>
+        </div>
+
+        <div class="tool-group">
+            <span class="group-label">Linkers (Multicistronic)</span>
+            <div class="toolbox-items">
+                <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="T2A"><div class="dna-block t2a">T2A</div></div>
+                <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="IRES"><div class="dna-block ires">IRES</div></div>
+            </div>
+        </div>
+
+        <div class="tool-group">
+            <span class="group-label">Regulators</span>
+            <div class="toolbox-items">
+                <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="Stop"><div class="dna-block stop">Stop</div></div>
+                <div class="piece-wrapper" draggable="true" ondragstart="drag(event)" data-id="pA"><div class="dna-block pa">polyA</div></div>
+            </div>
+        </div>
     </div>
 
     <div id="strand" class="strand" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="drop(event)"></div>
 
     <div style="display:flex; gap:10px;">
-        <button class="btn-primary" onclick="runSimulation()">Simulate Cre-Recombination</button>
-        <button onclick="clearStrand()" style="background:#ccc;">Clear</button>
+        <button class="btn-primary" onclick="runSimulation()">Run Simulation</button>
+        <button onclick="clearStrand()" style="background:#ddd;">Clear Strand</button>
     </div>
 
     <div id="summary-section"></div>
@@ -111,7 +151,8 @@
         "Lox1": {type: "LOX", css: "lox-style lox1"}, "Lox2": {type: "LOX", css: "lox-style lox2"},
         "Lox3": {type: "LOX", css: "lox-style lox3"}, "Lox4": {type: "LOX", css: "lox-style lox4"},
         "Lox5": {type: "LOX", css: "lox-style lox5"}, "Lox6": {type: "LOX", css: "lox-style lox6"},
-        "Stop": {type: "STOP", css: "stop"}, "pA": {type: "STOP", css: "pa"}, "T2A":  {type: "T2A",  css: "t2a"},
+        "Stop": {type: "STOP", css: "stop"}, "pA": {type: "STOP", css: "pa"}, 
+        "T2A":  {type: "LINK", css: "t2a"}, "IRES": {type: "LINK", css: "ires"},
         "ORF1": {type: "ORF",  css: "orf1"}, "ORF2": {type: "ORF",  css: "orf2"},
         "ORF3": {type: "ORF",  css: "orf3"}, "ORF4": {type: "ORF",  css: "orf4"}
     };
@@ -123,7 +164,6 @@
         const isFromStrand = ev.currentTarget.parentElement.id === 'strand';
         draggedData = { 
             id: ev.currentTarget.dataset.id, 
-            isRev: ev.currentTarget.classList.contains('rev'),
             index: isFromStrand ? Array.from(strand.children).indexOf(ev.currentTarget) : -1
         };
     }
@@ -148,12 +188,8 @@
         wrapper.dataset.id = id;
         wrapper.draggable = true;
         wrapper.ondragstart = drag;
-        wrapper.innerHTML = `<div class="dna-block ${info.css}">${id}</div><div class="delete-btn" onclick="this.parentElement.remove(); updateCode();">×</div>`;
-        wrapper.onclick = (e) => { 
-            if(e.target.className === 'delete-btn') return; 
-            wrapper.classList.toggle('rev'); 
-            updateCode(); 
-        };
+        wrapper.innerHTML = `<div class="dna-block ${info.css}"><span class="block-text">${id}</span></div><div class="delete-btn" onclick="this.parentElement.remove(); updateCode();">×</div>`;
+        wrapper.onclick = (e) => { if(e.target.className === 'delete-btn') return; wrapper.classList.toggle('rev'); updateCode(); };
         const siblings = [...strand.querySelectorAll('.piece-wrapper')];
         const next = siblings.find(s => mouseX < s.getBoundingClientRect().left + s.getBoundingClientRect().width/2);
         strand.insertBefore(wrapper, next || null);
@@ -170,7 +206,7 @@
         strand.innerHTML = '';
         const code = document.getElementById('sequence-string').value;
         if(!code) return;
-        code.split(',').forEach(part => {
+        code.split(',').filter(x => x).forEach(part => {
             const isRev = part.endsWith('r');
             const id = isRev ? part.slice(0, -1) : part;
             if(lookup[id]) addPiece(id, isRev, 99999);
@@ -181,12 +217,12 @@
 
     function getExpression(seq) {
         let expressed = [];
-        for(let s of seq) {
+        for(let i=0; i < seq.length; i++) {
+            let s = seq[i];
             if(s.type === 'STOP' && s.dir === 1) break;
             if(s.type === 'ORF' && s.dir === 1) {
                 expressed.push(s.id);
-                let idx = seq.indexOf(s);
-                if(!(seq[idx+1] && seq[idx+1].type === 'T2A')) break;
+                if(!(seq[i+1] && seq[i+1].type === 'LINK')) break;
             }
         }
         return expressed.length > 0 ? expressed.join(' + ') : "None";
@@ -203,7 +239,7 @@
         visited.set(JSON.stringify(initial), 0);
         let outcomes = [];
 
-        while(queue.length > 0 && outcomes.length < 100) {
+        while(queue.length > 0 && outcomes.length < 150) {
             let {seq, steps} = queue.shift();
             outcomes.push({seq, steps, expr: getExpression(seq)});
 
@@ -231,16 +267,16 @@
             if (!stats[o.expr]) stats[o.expr] = new Set();
             stats[o.expr].add(o.steps);
         });
-        let summaryHtml = `<h3>Phenotype Summary</h3><table class="summary-table"><tr><th>Expressed Proteins</th><th>Steps (Paths)</th></tr>`;
+        let summaryHtml = `<h3>Phenotype Summary</h3><table class="summary-table"><tr><th>Expressed Protein(s)</th><th>Events Required (Min-Max Steps)</th></tr>`;
         for (let key in stats) summaryHtml += `<tr><td><strong>${key}</strong></td><td>${Array.from(stats[key]).sort((a,b)=>a-b).join(', ')}</td></tr>`;
         document.getElementById('summary-section').innerHTML = summaryHtml + `</table>`;
 
         const res = document.getElementById('results');
-        res.innerHTML = `<h3>Unique DNA States (${outcomes.length})</h3>`;
+        res.innerHTML = `<h3>Generated DNA States (${outcomes.length})</h3>`;
         outcomes.forEach(o => {
             const div = document.createElement('div');
             div.className = 'outcome-box';
-            const dna = o.seq.map(s => `<div class="dna-block ${s.css}" style="transform: scale(0.6); min-width:70px; clip-path: polygon(${s.dir==1 ? '0% 0%, 85% 0%, 100% 50%, 85% 100%, 0% 100%' : '15% 0%, 100% 0%, 100% 100%, 15% 100%, 0% 50%'})">${s.id}${s.dir==-1?'r':''}</div>`).join('');
+            const dna = o.seq.map(s => `<div class="dna-block ${s.css}" style="transform: scale(0.6); min-width:75px; clip-path: polygon(${s.dir==1 ? '0% 0%, 85% 0%, 100% 50%, 85% 100%, 0% 100%' : '15% 0%, 100% 0%, 100% 100%, 15% 100%, 0% 50%'})"><span class="block-text">${s.id}${s.dir==-1?'r':''}</span></div>`).join('');
             div.innerHTML = `<div style="min-width:65px">Steps: ${o.steps}</div> <div style="display:flex; flex-grow:1; overflow-x:auto;">${dna}</div> <div class="express-tag">${o.expr}</div>`;
             res.appendChild(div);
         });
